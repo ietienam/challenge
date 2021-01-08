@@ -1,24 +1,44 @@
 const express = require("express");
 const crypto = require("crypto");
+const http = require("http");
 const fs = require("fs");
+const requests = require("request");
+const stream = require("stream");
+
 const app = express();
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: 'mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // https://expressjs.com/en/starter/basic-routing.html
 app.post("/", (request, response) => {
   let csv = { ...request.body };
+  csv = csv.csv;
   //csv = JSON.parse(csv);
   if (!csv || !csv.url) {
     response.status(400).json({
-      message: "Please provide input data in the right format"
+      message: "Please provide input data in the right format",
     });
   } else {
-    const getCSVData = url => {
+    let csvData;
+
+    let csvstream = requests(csv.url).pipe(fs.createWriteStream("data.csv"));
+    csvstream.on("finish", function () {
+      let instream = fs.createReadStream("data.csv");
+      let outstream = new stream();
+      let rl = readline.createInterface(instream, outstream);
+    });
+    csvstream.on("close", function () {
+      csvData = getCSVData(csv.url);
+      console.log("close");
+    });
+    csvstream.on("error", function (error) {
+      console.error(error);
+    });
+    const getCSVData = async (url) => {
       let csvData;
-      let fileUrl = new URL(url);
-      let data = fs.readFileSync(fileUrl);
+      let data = fs.readFile("./data.csv");
+      console.log(data);
       csvData = data.split("\n");
       if (csvData[csvData.length - 1] === "") {
         csvData.pop();
@@ -26,9 +46,7 @@ app.post("/", (request, response) => {
       //console.log(csvData);
       return csvData;
     };
-    const csvData = getCSVData(csv.url);
-
-    const getHeaders = csvData => {
+    const getHeaders = (csvData) => {
       let headers = csvData[0];
       headers = headers.replace("\r", "");
       headers = headers.split(",");
@@ -38,9 +56,9 @@ app.post("/", (request, response) => {
     //console.log(csvHeaders);
 
     let csvRawBody = csvData.slice(1);
-    csvRawBody = csvRawBody.map(csv => csv.replace("\r", ""));
+    csvRawBody = csvRawBody.map((csv) => csv.replace("\r", ""));
     //console.log(csvRawBody);
-    const getBody = csvRawBody => {
+    const getBody = (csvRawBody) => {
       let data = [];
       function operate(csvRawBody) {
         if (csvRawBody.length === 0) return;
@@ -65,7 +83,7 @@ app.post("/", (request, response) => {
     //console.log(isValid);
     if (!isValid) {
       response.status(400).json({
-        message: "Invalid CSV file format"
+        message: "Invalid CSV file format",
       });
     } else {
       const generateJSONObjectInArray = (csvHeaders, csvBody, fields) => {
@@ -89,14 +107,14 @@ app.post("/", (request, response) => {
           createObject(csvHeaders, csvBody);
           returnData = {
             conversion_key: crypto.randomBytes(32).toString("hex"),
-            json: response
+            json: response,
           };
           return returnData;
         } else {
           function createTailoredObject(csvHeaders, csvBody, fields) {
             if (csvBody.length === 0) return;
             let data = {};
-            let fieldData = fields.map(val => {
+            let fieldData = fields.map((val) => {
               if (csvHeaders.includes(val)) {
                 return val;
               }
@@ -120,7 +138,7 @@ app.post("/", (request, response) => {
           createTailoredObject(csvHeaders, csvBody, fields);
           returnData = {
             conversion_key: crypto.randomBytes(32).toString("hex"),
-            json: response
+            json: response,
           };
           return returnData;
         }
