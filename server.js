@@ -3,6 +3,9 @@ const crypto = require("crypto");
 const fs = require("fs");
 const app = express();
 
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: 'mb' }));
+
 // https://expressjs.com/en/starter/basic-routing.html
 app.post("/", (request, response) => {
   let csv = { ...request.body };
