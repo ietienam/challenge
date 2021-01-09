@@ -57,7 +57,10 @@ app.post("/", (request, response) => {
               headers = headers.split(",");
               return headers;
             };
-            const csvHeaders = getHeaders(csvData);
+            let csvHeaders = getHeaders(csvData);
+            for (let i = 0; i < csvHeaders.length; i++) {
+              csvHeaders[i] = csvHeaders[i].trim();
+            }
             console.log(csvHeaders);
 
             let csvRawBody = csvData.slice(1);
@@ -67,15 +70,26 @@ app.post("/", (request, response) => {
               let data = [];
               function operate(csvRawBody) {
                 if (csvRawBody.length === 0) return;
-                let value = csvRawBody[0].split(",").join(" ");
+                let value = csvRawBody[0].split(",");
+                for (let i = 0; i < value.length; i++) {
+                  value[i] = value[i].trim();
+                }
+                value = value.join(" ");
                 data.push(value);
                 operate(csvRawBody.slice(1));
               }
               operate(csvRawBody);
+              if (data[data.length - 1] == "") data.pop();
+              function trimWhiteSpace(data) {
+                if (data.length === 0) return;
+                data[0] = data[0].trim();
+                trimWhiteSpace(data.slice(1));
+              }
+              trimWhiteSpace(data);
               return data;
             };
             const csvBody = getBody(csvRawBody);
-            //console.log(csvBody);
+            console.log(csvBody);
 
             const validateCSV = (csvBody, csvHeadersLength) => {
               if (csvBody.length === 0) return true;
@@ -119,6 +133,7 @@ app.post("/", (request, response) => {
                     conversion_key: crypto.randomBytes(32).toString("hex"),
                     json: response,
                   };
+                  console.log(returnData);
                   return returnData;
                 } else {
                   function createTailoredObject(csvHeaders, csvBody, fields) {
@@ -150,23 +165,20 @@ app.post("/", (request, response) => {
                     conversion_key: crypto.randomBytes(32).toString("hex"),
                     json: response,
                   };
+                  console.log(returnData);
                   return returnData;
                 }
               };
               if (csv.select_fields) {
-                const csvJSON = JSON.stringify(
-                  generateJSONObjectInArray(
-                    csvHeaders,
-                    csvBody,
-                    csv.select_fields
-                  )
+                const csvJSON = generateJSONObjectInArray(
+                  csvHeaders,
+                  csvBody,
+                  csv.select_fields
                 );
-                response.status(200).send(csvJSON);
+                response.status(200).json(csvJSON);
               } else {
-                const csvJSON = JSON.stringify(
-                  generateJSONObjectInArray(csvHeaders, csvBody)
-                );
-                response.status(200).send(csvJSON);
+                const csvJSON = generateJSONObjectInArray(csvHeaders, csvBody);
+                response.status(200).json(csvJSON);
               }
             }
             resolve(csvData);
