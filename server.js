@@ -60,6 +60,7 @@ app.post("/", (request, response) => {
             let csvHeaders = getHeaders(csvData);
             for (let i = 0; i < csvHeaders.length; i++) {
               csvHeaders[i] = csvHeaders[i].trim();
+              csvHeaders[i] = csvHeaders[i].replace(/['"]/g, "");
             }
             console.log(csvHeaders);
 
@@ -73,6 +74,7 @@ app.post("/", (request, response) => {
                 let value = csvRawBody[0].split(",");
                 for (let i = 0; i < value.length; i++) {
                   value[i] = value[i].trim();
+                  value[i] = value[i].replace(/['"]/g, "");
                 }
                 value = value.join(" ");
                 data.push(value);
